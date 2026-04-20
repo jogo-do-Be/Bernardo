@@ -9,7 +9,8 @@ const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 const scoreEl = document.getElementById("score");
 const highScoreEl = document.getElementById("high-score");
-const levelEl = document.getElementById("level");
+const painelJogoEl = document.querySelector(".painel-jogo");
+const headlineEl = document.getElementById("headline");
 const statusEl = document.getElementById("status");
 const startBtn = document.getElementById("start-btn");
 const pauseBtn = document.getElementById("pause-btn");
@@ -42,9 +43,19 @@ function saveHighScore(value) {
   localStorage.setItem("snake_high_score", String(value));
 }
 
-function setStatus(text, variant = "ok") {
+function setStatus(text, variant = "ok", forcedTitle = "") {
   statusEl.textContent = text;
   statusEl.classList.remove("is-ok", "is-error", "is-paused");
+
+  let title = forcedTitle;
+  if (!title) {
+    if (variant === "error") title = "FIM DE JOGO";
+    else if (variant === "paused") title = "PAUSADO";
+    else if (gameRunning) title = "JOGANDO";
+    else title = "PRONTO";
+  }
+
+  headlineEl.textContent = title;
 
   if (variant === "error") {
     statusEl.classList.add("is-error");
@@ -59,16 +70,16 @@ function setStatus(text, variant = "ok") {
   statusEl.classList.add("is-ok");
 }
 
+function setPlayingUi(isPlaying) {
+  painelJogoEl.classList.toggle("jogando", isPlaying);
+}
+
 function randomInt(max) {
   return Math.floor(Math.random() * max);
 }
 
 function sameCell(a, b) {
   return a.x === b.x && a.y === b.y;
-}
-
-function levelFromSpeed() {
-  return Math.max(1, Math.floor((160 - tickMs) / 8) + 1);
 }
 
 function clearLoop() {
@@ -143,14 +154,13 @@ function resetGame() {
 function updateHud() {
   scoreEl.textContent = String(score);
   highScoreEl.textContent = String(highScore);
-  levelEl.textContent = String(levelFromSpeed());
 }
 
 function drawBoard() {
-  ctx.fillStyle = "#050c12";
+  ctx.fillStyle = "#061106";
   ctx.fillRect(0, 0, BOARD_PX, BOARD_PX);
 
-  ctx.strokeStyle = "rgba(64, 163, 187, 0.18)";
+  ctx.strokeStyle = "rgba(54, 146, 58, 0.25)";
   ctx.lineWidth = 1;
 
   for (let i = 0; i <= GRID_SIZE; i += 1) {
@@ -173,7 +183,7 @@ function drawSnake() {
     const px = segment.x * CELL_SIZE;
     const py = segment.y * CELL_SIZE;
 
-    const tone = index === 0 ? "#88ffe5" : "#37d7ba";
+    const tone = index === 0 ? "#9dff71" : "#52e14b";
     ctx.fillStyle = tone;
     ctx.fillRect(px + 2, py + 2, CELL_SIZE - 4, CELL_SIZE - 4);
   });
@@ -188,7 +198,7 @@ function drawFood() {
     return;
   }
 
-  ctx.fillStyle = "#ff9f4d";
+  ctx.fillStyle = "#ff5252";
   ctx.beginPath();
   ctx.arc(px + CELL_SIZE / 2, py + CELL_SIZE / 2, CELL_SIZE / 3, 0, Math.PI * 2);
   ctx.fill();
@@ -209,10 +219,11 @@ function startGame() {
   resetGame();
   hasStarted = true;
   gameRunning = true;
-  startBtn.textContent = "Novo Jogo";
+  startBtn.textContent = "NOVO JOGO";
   pauseBtn.disabled = false;
-  pauseBtn.textContent = "Pausar";
-  setStatus("Valendo!", "ok");
+  pauseBtn.textContent = "PAUSAR";
+  setStatus("Boa sorte!", "ok", "JOGANDO");
+  setPlayingUi(true);
   scheduleLoop();
 }
 
@@ -220,8 +231,9 @@ function stopGame() {
   gameRunning = false;
   paused = false;
   clearLoop();
-  pauseBtn.textContent = "Pausar";
-  pauseBtn.disabled = true;
+  pauseBtn.textContent = "JOGAR DE NOVO";
+  pauseBtn.disabled = !hasStarted;
+  setPlayingUi(false);
 }
 
 function pauseGame() {
@@ -229,21 +241,27 @@ function pauseGame() {
   paused = true;
   gameRunning = false;
   clearLoop();
-  pauseBtn.textContent = "Continuar";
-  setStatus("Pausado. Toque em Continuar.", "paused");
+  pauseBtn.textContent = "CONTINUAR";
+  setStatus("Jogo pausado.", "paused", "PAUSADO");
+  setPlayingUi(false);
 }
 
 function resumeGame() {
   if (!paused || !hasStarted) return;
   paused = false;
   gameRunning = true;
-  pauseBtn.textContent = "Pausar";
-  setStatus("Valendo!", "ok");
+  pauseBtn.textContent = "PAUSAR";
+  setStatus("Boa sorte!", "ok", "JOGANDO");
+  setPlayingUi(true);
   scheduleLoop();
 }
 
 function togglePause() {
   if (!hasStarted) return;
+  if (!gameRunning && !paused) {
+    startGame();
+    return;
+  }
   if (gameRunning) {
     pauseGame();
     return;
@@ -255,7 +273,7 @@ function togglePause() {
 
 function gameOver() {
   stopGame();
-  setStatus("Fim de jogo. Toque em Novo Jogo.", "error");
+  setStatus("Fim de jogo. Toque em Novo Jogo.", "error", "FIM DE JOGO");
 }
 
 function setDirection(next) {
@@ -272,7 +290,6 @@ function increaseSpeed() {
   const nextTick = Math.max(72, 160 - score * 2);
   if (nextTick !== tickMs) {
     tickMs = nextTick;
-    updateHud();
     scheduleLoop();
   }
 }
@@ -311,7 +328,7 @@ function step() {
       updateHud();
       draw();
       stopGame();
-      setStatus("Voce venceu! Tabuleiro completo.", "ok");
+      setStatus("Você venceu!", "ok", "VITÓRIA");
       return;
     }
 
@@ -397,18 +414,19 @@ async function init() {
 
   if (pieceImages.length) {
     piecesCountEl.textContent = `${pieceImages.length} imagens carregadas em /pieces.`;
-    setStatus("Skins prontas. Toque em Jogar.", "ok");
+    setStatus("Imagens prontas. Toque em Novo Jogo.", "ok", "PRONTO");
   } else {
     piecesCountEl.textContent = "Nenhuma imagem encontrada em /pieces.";
-    setStatus("Sem skins. O jogo usara bolinha padrao.", "paused");
+    setStatus("Sem imagens. Usando bolinha padrão.", "ok", "PRONTO");
   }
 
+  setPlayingUi(false);
   startBtn.disabled = false;
   bindControls();
 }
 
 init().catch(() => {
-  setStatus("Erro ao carregar jogo. Recarregue a pagina.", "error");
+  setStatus("Erro ao carregar jogo. Recarregue a página.", "error", "ERRO");
   piecesCountEl.textContent = "Falha ao carregar recursos.";
   startBtn.disabled = true;
   pauseBtn.disabled = true;

@@ -3,46 +3,51 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Jogo do Bê</title>
+    <title>Mini Cobrinha</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Bungee&family=Chakra+Petch:wght@400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Press+Start+2P&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <main class="mini-shell">
-      <header class="topbar">
-        <h1>Jogo do Bê</h1>
-        <div class="chips">
-          <p class="chip">Pontos <strong id="score">0</strong></p>
-          <p class="chip">Recorde <strong id="high-score">0</strong></p>
-          <p class="chip">Nível <strong id="level">1</strong></p>
-        </div>
-      </header>
+    <main class="phone-shell">
+      <section class="arcade-phone">
+        <header class="top-hud">
+          <p>PONTOS <strong id="score">0</strong></p>
+          <p>RECORDE <strong id="high-score">0</strong></p>
+        </header>
 
-      <section class="arena-card">
-        <p id="status" class="status-pill">Carregando imagens...</p>
-        <canvas id="game" width="600" height="600"></canvas>
+        <section class="screen-card">
+          <div class="screen-inner">
+            <canvas id="game" width="600" height="600"></canvas>
+            <div class="crt-layer" aria-hidden="true"></div>
+          </div>
+        </section>
 
-        <div class="actions">
-          <button id="start-btn" class="action-btn primary" disabled>Jogar</button>
-          <button id="pause-btn" class="action-btn" disabled>Pausar</button>
-        </div>
+        <section class="painel-jogo">
+          <h1 id="headline" class="headline">PRONTO</h1>
+          <p id="status" class="status-pill">Carregando imagens...</p>
+          <p id="pieces-count" class="meta-line">Buscando imagens em <code>/pieces</code>...</p>
 
-        <p id="pieces-count" class="meta">Buscando skins em <code>/pieces</code>...</p>
-      </section>
+          <div class="actions">
+            <button id="start-btn" class="action-btn primary" disabled>NOVO JOGO</button>
+            <button id="pause-btn" class="action-btn" disabled>PAUSAR</button>
+          </div>
+        </section>
 
-      <section class="pad-card" aria-label="Controles">
-        <div class="dpad">
-          <button class="dir-btn up" data-dir="up" aria-label="Cima">▲</button>
-          <button class="dir-btn left" data-dir="left" aria-label="Esquerda">◀</button>
-          <button class="dir-btn right" data-dir="right" aria-label="Direita">▶</button>
-          <button class="dir-btn down" data-dir="down" aria-label="Baixo">▼</button>
-        </div>
-        <p class="meta">Setas/WASD no teclado e swipe no tabuleiro também funcionam.</p>
+        <section class="pad-wrap" aria-label="Controles">
+          <div class="dpad">
+            <button class="dir-btn up" data-dir="up" aria-label="Cima">↑</button>
+            <button class="dir-btn left" data-dir="left" aria-label="Esquerda">←</button>
+            <button class="dir-btn right" data-dir="right" aria-label="Direita">→</button>
+            <button class="dir-btn down" data-dir="down" aria-label="Baixo">↓</button>
+          </div>
+        </section>
+
+        <span class="brand-mark">t</span>
       </section>
     </main>
 
