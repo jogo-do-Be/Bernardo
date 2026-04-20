@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Cobrinha com Suas Fotos</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="app">
+      <section class="panel">
+        <h1>Cobrinha Clássica</h1>
+        <p class="subtitle">Coma as imagens em <code>/pieces</code> (<code>1.png</code>, <code>2.png</code>, ...)</p>
+
+        <div class="stats">
+          <div>Pontos: <strong id="score">0</strong></div>
+          <div>Recorde: <strong id="high-score">0</strong></div>
+        </div>
+
+        <p id="status" class="status">Carregando imagens...</p>
+
+        <button id="start-btn" class="btn" disabled>Iniciar</button>
+
+        <div class="controls">
+          <button data-dir="up" aria-label="Cima">↑</button>
+          <div class="middle-row">
+            <button data-dir="left" aria-label="Esquerda">←</button>
+            <button data-dir="down" aria-label="Baixo">↓</button>
+            <button data-dir="right" aria-label="Direita">→</button>
+          </div>
+        </div>
+
+        <ul>
+          <li>Teclas: setas ou WASD</li>
+          <li>Bateu na parede ou no próprio corpo: fim de jogo</li>
+        </ul>
+      </section>
+
+      <section class="board-wrap">
+        <canvas id="game" width="600" height="600"></canvas>
+      </section>
+    </main>
+
+    <script src="game.js"></script>
+  </body>
+</html>
