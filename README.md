@@ -45,7 +45,9 @@ Siga o assistente e confirme deploy de projeto estático.
 ## Controles
 
 - Teclado: setas ou `W A S D`
-- Também há botões na tela para celular
+- D-pad na tela (mobile/tablet)
+- Swipe direto no tabuleiro
+- Botão de pausa/continuar durante a partida
 
 ## Observações
 

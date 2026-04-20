@@ -9,9 +9,12 @@ const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 const scoreEl = document.getElementById("score");
 const highScoreEl = document.getElementById("high-score");
+const levelEl = document.getElementById("level");
 const statusEl = document.getElementById("status");
 const startBtn = document.getElementById("start-btn");
-const controlButtons = [...document.querySelectorAll(".controls button")];
+const pauseBtn = document.getElementById("pause-btn");
+const piecesCountEl = document.getElementById("pieces-count");
+const controlButtons = [...document.querySelectorAll(".dir-btn")];
 
 canvas.width = BOARD_PX;
 canvas.height = BOARD_PX;
@@ -24,8 +27,11 @@ let score;
 let highScore;
 let gameTimer = null;
 let gameRunning = false;
+let hasStarted = false;
+let paused = false;
 let tickMs = 160;
 let pieceImages = [];
+let touchStart = null;
 
 function loadHighScore() {
   const saved = localStorage.getItem("snake_high_score");
@@ -36,9 +42,21 @@ function saveHighScore(value) {
   localStorage.setItem("snake_high_score", String(value));
 }
 
-function setStatus(text, error = false) {
+function setStatus(text, variant = "ok") {
   statusEl.textContent = text;
-  statusEl.style.color = error ? "#b33410" : "#1f2f2d";
+  statusEl.classList.remove("is-ok", "is-error", "is-paused");
+
+  if (variant === "error") {
+    statusEl.classList.add("is-error");
+    return;
+  }
+
+  if (variant === "paused") {
+    statusEl.classList.add("is-paused");
+    return;
+  }
+
+  statusEl.classList.add("is-ok");
 }
 
 function randomInt(max) {
@@ -47,6 +65,17 @@ function randomInt(max) {
 
 function sameCell(a, b) {
   return a.x === b.x && a.y === b.y;
+}
+
+function levelFromSpeed() {
+  return Math.max(1, Math.floor((160 - tickMs) / 8) + 1);
+}
+
+function clearLoop() {
+  if (gameTimer) {
+    clearInterval(gameTimer);
+    gameTimer = null;
+  }
 }
 
 function loadImage(src) {
@@ -90,6 +119,7 @@ function spawnFood() {
       image: getRandomPieceImage(),
     };
   } while (snake.some((segment) => sameCell(segment, candidate)));
+
   return candidate;
 }
 
@@ -104,6 +134,7 @@ function resetGame() {
   pendingDirection = { ...direction };
   score = 0;
   tickMs = 160;
+  paused = false;
   food = spawnFood();
   updateHud();
   draw();
@@ -112,17 +143,19 @@ function resetGame() {
 function updateHud() {
   scoreEl.textContent = String(score);
   highScoreEl.textContent = String(highScore);
+  levelEl.textContent = String(levelFromSpeed());
 }
 
 function drawBoard() {
-  ctx.fillStyle = "#0b1414";
+  ctx.fillStyle = "#050c12";
   ctx.fillRect(0, 0, BOARD_PX, BOARD_PX);
 
-  ctx.strokeStyle = "#162424";
+  ctx.strokeStyle = "rgba(64, 163, 187, 0.18)";
   ctx.lineWidth = 1;
 
   for (let i = 0; i <= GRID_SIZE; i += 1) {
     const p = i * CELL_SIZE;
+
     ctx.beginPath();
     ctx.moveTo(p, 0);
     ctx.lineTo(p, BOARD_PX);
@@ -140,7 +173,8 @@ function drawSnake() {
     const px = segment.x * CELL_SIZE;
     const py = segment.y * CELL_SIZE;
 
-    ctx.fillStyle = index === 0 ? "#68f1cb" : "#1fd39b";
+    const tone = index === 0 ? "#88ffe5" : "#37d7ba";
+    ctx.fillStyle = tone;
     ctx.fillRect(px + 2, py + 2, CELL_SIZE - 4, CELL_SIZE - 4);
   });
 }
@@ -154,7 +188,7 @@ function drawFood() {
     return;
   }
 
-  ctx.fillStyle = "#ff6b6b";
+  ctx.fillStyle = "#ff9f4d";
   ctx.beginPath();
   ctx.arc(px + CELL_SIZE / 2, py + CELL_SIZE / 2, CELL_SIZE / 3, 0, Math.PI * 2);
   ctx.fill();
@@ -167,37 +201,67 @@ function draw() {
 }
 
 function scheduleLoop() {
-  if (gameTimer) {
-    clearInterval(gameTimer);
-  }
+  clearLoop();
   gameTimer = setInterval(step, tickMs);
 }
 
 function startGame() {
   resetGame();
+  hasStarted = true;
   gameRunning = true;
-  startBtn.textContent = "Reiniciar";
-  setStatus("Boa sorte!");
+  startBtn.textContent = "Novo Jogo";
+  pauseBtn.disabled = false;
+  pauseBtn.textContent = "Pausar";
+  setStatus("Valendo!", "ok");
   scheduleLoop();
 }
 
 function stopGame() {
   gameRunning = false;
-  if (gameTimer) {
-    clearInterval(gameTimer);
-    gameTimer = null;
+  paused = false;
+  clearLoop();
+  pauseBtn.textContent = "Pausar";
+  pauseBtn.disabled = true;
+}
+
+function pauseGame() {
+  if (!gameRunning) return;
+  paused = true;
+  gameRunning = false;
+  clearLoop();
+  pauseBtn.textContent = "Continuar";
+  setStatus("Pausado. Toque em Continuar.", "paused");
+}
+
+function resumeGame() {
+  if (!paused || !hasStarted) return;
+  paused = false;
+  gameRunning = true;
+  pauseBtn.textContent = "Pausar";
+  setStatus("Valendo!", "ok");
+  scheduleLoop();
+}
+
+function togglePause() {
+  if (!hasStarted) return;
+  if (gameRunning) {
+    pauseGame();
+    return;
+  }
+  if (paused) {
+    resumeGame();
   }
 }
 
 function gameOver() {
   stopGame();
-  setStatus("Fim de jogo. Clique em Reiniciar para jogar novamente.", true);
+  setStatus("Fim de jogo. Toque em Novo Jogo.", "error");
 }
 
 function setDirection(next) {
   if (!gameRunning) return;
 
-  if (next.x === -direction.x && next.y === -direction.y) {
+  if (next.x === -pendingDirection.x && next.y === -pendingDirection.y) {
     return;
   }
 
@@ -205,9 +269,10 @@ function setDirection(next) {
 }
 
 function increaseSpeed() {
-  const nextTick = Math.max(80, 160 - Math.floor(score / 2));
+  const nextTick = Math.max(72, 160 - score * 2);
   if (nextTick !== tickMs) {
     tickMs = nextTick;
+    updateHud();
     scheduleLoop();
   }
 }
@@ -241,13 +306,15 @@ function step() {
       highScore = score;
       saveHighScore(highScore);
     }
+
     if (snake.length === GRID_SIZE * GRID_SIZE) {
       updateHud();
       draw();
       stopGame();
-      setStatus("Voce venceu! Tabuleiro completo.");
+      setStatus("Voce venceu! Tabuleiro completo.", "ok");
       return;
     }
+
     food = spawnFood();
     increaseSpeed();
   } else {
@@ -271,33 +338,69 @@ function onKeyDown(event) {
   if (key === "arrowright" || key === "d") setDirection({ x: 1, y: 0 });
 }
 
+function setDirectionByName(dir) {
+  if (dir === "up") setDirection({ x: 0, y: -1 });
+  if (dir === "down") setDirection({ x: 0, y: 1 });
+  if (dir === "left") setDirection({ x: -1, y: 0 });
+  if (dir === "right") setDirection({ x: 1, y: 0 });
+}
+
+function onTouchStart(event) {
+  const touch = event.changedTouches[0];
+  touchStart = { x: touch.clientX, y: touch.clientY };
+}
+
+function onTouchEnd(event) {
+  if (!touchStart || !gameRunning) return;
+
+  const touch = event.changedTouches[0];
+  const dx = touch.clientX - touchStart.x;
+  const dy = touch.clientY - touchStart.y;
+  const absX = Math.abs(dx);
+  const absY = Math.abs(dy);
+
+  if (Math.max(absX, absY) < 18) return;
+
+  if (absX > absY) {
+    setDirection(dx > 0 ? { x: 1, y: 0 } : { x: -1, y: 0 });
+  } else {
+    setDirection(dy > 0 ? { x: 0, y: 1 } : { x: 0, y: -1 });
+  }
+
+  touchStart = null;
+}
+
 function bindControls() {
   document.addEventListener("keydown", onKeyDown);
 
   controlButtons.forEach((button) => {
-    const { dir } = button.dataset;
-
-    button.addEventListener("click", () => {
-      if (dir === "up") setDirection({ x: 0, y: -1 });
-      if (dir === "down") setDirection({ x: 0, y: 1 });
-      if (dir === "left") setDirection({ x: -1, y: 0 });
-      if (dir === "right") setDirection({ x: 1, y: 0 });
+    button.addEventListener("pointerdown", (event) => {
+      event.preventDefault();
+      setDirectionByName(button.dataset.dir);
     });
   });
 
+  canvas.addEventListener("touchstart", onTouchStart, { passive: true });
+  canvas.addEventListener("touchend", onTouchEnd, { passive: true });
+
   startBtn.addEventListener("click", startGame);
+  pauseBtn.addEventListener("click", togglePause);
 }
 
 async function init() {
   highScore = loadHighScore();
+  score = 0;
   updateHud();
   drawBoard();
 
   pieceImages = await discoverPieceImages();
+
   if (pieceImages.length) {
-    setStatus(`Imagens encontradas: ${pieceImages.length}. Clique em Iniciar.`);
+    piecesCountEl.textContent = `${pieceImages.length} imagens carregadas em /pieces.`;
+    setStatus("Skins prontas. Toque em Jogar.", "ok");
   } else {
-    setStatus("Nenhuma imagem encontrada em /pieces. O jogo vai usar bolinha padrão.");
+    piecesCountEl.textContent = "Nenhuma imagem encontrada em /pieces.";
+    setStatus("Sem skins. O jogo usara bolinha padrao.", "paused");
   }
 
   startBtn.disabled = false;
@@ -305,6 +408,8 @@ async function init() {
 }
 
 init().catch(() => {
-  setStatus("Erro ao carregar jogo. Recarregue a página.", true);
+  setStatus("Erro ao carregar jogo. Recarregue a pagina.", "error");
+  piecesCountEl.textContent = "Falha ao carregar recursos.";
   startBtn.disabled = true;
+  pauseBtn.disabled = true;
 });
